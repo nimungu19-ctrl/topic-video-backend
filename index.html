@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0e0f13">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Video Maker</title>
+<style>
+  :root {
+    --bg: #0e0f13;
+    --surface: #17191f;
+    --surface-2: #1f222a;
+    --line: #2a2e38;
+    --text: #f2f3f5;
+    --muted: #8b90a0;
+    --accent: #7c6cff;
+    --accent-2: #4dd4ff;
+    --danger: #ff6b7a;
+    --ok: #4ade9a;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
+    display: flex;
+    justify-content: center;
+    overscroll-behavior: none;
+  }
+  .app {
+    width: 100%;
+    max-width: 480px;
+    min-height: 100%;
+    display: flex;
+    flex-direction: column;
+    padding: 28px 20px 24px;
+  }
+  header { padding: 12px 4px 28px; }
+  .logo {
+    width: 48px; height: 48px; border-radius: 14px;
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    display: grid; place-items: center; margin-bottom: 20px;
+    box-shadow: 0 8px 24px rgba(124,108,255,.35);
+  }
+  .logo svg { width: 24px; height: 24px; fill: #fff; }
+  h1 { font-size: 32px; line-height: 1.1; letter-spacing: -0.02em; margin: 0 0 8px; font-weight: 700; }
+  header p { margin: 0; color: var(--muted); font-size: 16px; line-height: 1.45; }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 22px;
+    padding: 18px;
+  }
+  label { display: block; font-size: 14px; font-weight: 600; color: var(--muted); margin: 0 2px 10px; }
+  .field {
+    width: 100%;
+    background: var(--surface-2);
+    border: 1.5px solid var(--line);
+    border-radius: 14px;
+    color: var(--text);
+    font: inherit;
+    font-size: 17px; /* 16px+ prevents iOS zoom on focus */
+    padding: 16px;
+    outline: none;
+    transition: border-color .15s, box-shadow .15s;
+  }
+  .field::placeholder { color: #5d6272; }
+  .field:focus { border-color: var(--accent); box-shadow: 0 0 0 4px rgba(124,108,255,.18); }
+
+  .btn {
+    width: 100%;
+    margin-top: 16px;
+    border: 0;
+    border-radius: 16px;
+    padding: 18px;
+    font: inherit;
+    font-size: 17px;
+    font-weight: 650;
+    color: #fff;
+    background: linear-gradient(135deg, var(--accent), #5b8cff);
+    box-shadow: 0 10px 28px rgba(124,108,255,.38);
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+    transition: transform .12s, opacity .2s, box-shadow .2s;
+  }
+  .btn:active { transform: scale(.98); }
+  .btn:disabled { opacity: .55; box-shadow: none; cursor: default; }
+  .btn:focus-visible, .link:focus-visible { outline: 3px solid var(--accent-2); outline-offset: 3px; }
+  .btn.secondary {
+    background: var(--surface-2); border: 1px solid var(--line);
+    box-shadow: none; margin-top: 12px; font-weight: 600;
+  }
+  .spinner {
+    width: 18px; height: 18px; border-radius: 50%;
+    border: 2.5px solid rgba(255,255,255,.35); border-top-color: #fff;
+    animation: spin .8s linear infinite; display: none;
+  }
+  .loading .spinner { display: block; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .status { margin: 16px 4px 0; font-size: 15px; line-height: 1.45; min-height: 22px; color: var(--muted); }
+  .status.error { color: var(--danger); }
+  .status.ok { color: var(--ok); }
+
+  .result { margin-top: 20px; display: none; }
+  .result.show { display: block; }
+  video {
+    width: 100%; border-radius: 18px; background: #000;
+    border: 1px solid var(--line); max-height: 60vh;
+  }
+  .link { background: none; border: 0; color: var(--muted); font: inherit; font-size: 15px; padding: 14px; margin: 12px auto 0; display: block; cursor: pointer; }
+
+  footer { margin-top: auto; padding-top: 28px; text-align: center; color: #565b6b; font-size: 13px; }
+
+  @media (prefers-reduced-motion: reduce) { .spinner { animation-duration: 2s; } .btn { transition: none; } }
+</style>
+</head>
+<body>
+<main class="app">
+  <header>
+    <div class="logo" aria-hidden="true">
+      <svg viewBox="0 0 24 24"><path d="M8 5.5v13a1 1 0 0 0 1.53.85l10-6.5a1 1 0 0 0 0-1.7l-10-6.5A1 1 0 0 0 8 5.5Z"/></svg>
+    </div>
+    <h1>Make a video from any topic</h1>
+    <p>Type an idea and get a finished video saved straight to your phone.</p>
+  </header>
+
+  <section class="card">
+    <label for="topic">Video topic</label>
+    <input id="topic" class="field" type="text" placeholder="e.g. How volcanoes form"
+           autocomplete="off" autocapitalize="sentences" enterkeyhint="go" maxlength="200">
+    <button id="go" class="btn" type="button">
+      <span class="spinner" aria-hidden="true"></span>
+      <span id="goLabel">Generate video</span>
+    </button>
+    <div id="status" class="status" role="status" aria-live="polite"></div>
+  </section>
+
+  <section id="result" class="result">
+    <video id="player" controls playsinline></video>
+    <a id="saveLink" class="btn secondary" style="text-decoration:none" href="#" download>Save video again</a>
+    <button id="reset" class="link" type="button">Make another</button>
+  </section>
+
+  <footer>Videos can take a minute or two to generate.</footer>
+</main>
+
+<script>
+  // ===== CONFIG: replace with your Hugging Face Space URL =====
+  const BACKEND_URL = "https://hf.space";   // e.g. https://your-user-your-space.hf.space/generate
+  const QUERY_PARAM = "topic";
+  const TIMEOUT_MS  = 5 * 60 * 1000;         // give the backend up to 5 minutes
+  // ============================================================
+
+  const $ = (id) => document.getElementById(id);
+  const topicEl = $("topic"), goBtn = $("go"), goLabel = $("goLabel");
+  const statusEl = $("status"), resultEl = $("result"), player = $("player"), saveLink = $("saveLink");
+
+  let objectUrl = null;
+  let controller = null;
+
+  function setStatus(msg, kind = "") {
+    statusEl.textContent = msg;
+    statusEl.className = "status " + kind;
+  }
+
+  function setBusy(busy) {
+    goBtn.disabled = busy;
+    goBtn.classList.toggle("loading", busy);
+    topicEl.disabled = busy;
+    goLabel.textContent = busy ? "Generating…" : "Generate video";
+  }
+
+  function slugify(s) {
+    return s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 50) || "video";
+  }
+
+  function extFromType(type) {
+    if (!type) return "mp4";
+    if (type.includes("webm")) return "webm";
+    if (type.includes("quicktime")) return "mov";
+    return "mp4";
+  }
+
+  function filenameFrom(res, topic, blobType) {
+    const cd = res.headers.get("Content-Disposition") || "";
+    const m = cd.match(/filename\*?=(?:UTF-8'')?"?([^";]+)"?/i);
+    if (m) { try { return decodeURIComponent(m[1]); } catch (_) { return m[1]; } }
+    return slugify(topic) + "." + extFromType(blobType);
+  }
+
+  function triggerDownload(url, name) {
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = name;
+    a.style.display = "none";
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => a.remove(), 1000);
+  }
+
+  async function generate() {
+    const topic = topicEl.value.trim();
+    if (!topic) {
+      setStatus("Enter a topic to get started.", "error");
+      topicEl.focus();
+      return;
+    }
+
+    if (objectUrl) { URL.revokeObjectURL(objectUrl); objectUrl = null; }
+    resultEl.classList.remove("show");
+    setBusy(true);
+    setStatus("Creating your video. Keep this tab open.");
+
+    controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
+
+    try {
+      const url = new URL(BACKEND_URL);
+      url.searchParams.set(QUERY_PARAM, topic);
+
+      const res = await fetch(url.toString(), { method: "GET", signal: controller.signal });
+      if (!res.ok) {
+        let detail = "";
+        try { detail = (await res.text()).slice(0, 160); } catch (_) {}
+        throw new Error("Server returned " + res.status + (detail ? ": " + detail : ""));
+      }
+
+      const blob = await res.blob();
+      const type = blob.type || res.headers.get("Content-Type") || "";
+      if (!type.startsWith("video/") && !type.includes("octet-stream")) {
+        throw new Error("The server didn't send a video file.");
+      }
+
+      const videoBlob = type.startsWith("video/") ? blob : new Blob([blob], { type: "video/mp4" });
+      const name = filenameFrom(res, topic, videoBlob.type);
+      objectUrl = URL.createObjectURL(videoBlob);
+
+      // Preview + fallback save button
+      player.src = objectUrl;
+      saveLink.href = objectUrl;
+      saveLink.download = name;
+      resultEl.classList.add("show");
+
+      // Automatic download to the device
+      triggerDownload(objectUrl, name);
+      setStatus("Done. Your video is downloading. If it doesn't appear, tap “Save video again”.", "ok");
+    } catch (err) {
+      const msg = err.name === "AbortError"
+        ? "This is taking too long. Try a simpler topic or try again."
+        : err instanceof TypeError
+          ? "Couldn't reach the server. Check your connection and the backend URL."
+          : err.message;
+      setStatus(msg, "error");
+    } finally {
+      clearTimeout(timer);
+      controller = null;
+      setBusy(false);
+    }
+  }
+
+  goBtn.addEventListener("click", generate);
+  topicEl.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); generate(); } });
+  $("reset").addEventListener("click", () => {
+    player.pause();
+    resultEl.classList.remove("show");
+    setStatus("");
+    topicEl.value = "";
+    topicEl.focus();
+  });
+</script>
+</body>
+</html>
