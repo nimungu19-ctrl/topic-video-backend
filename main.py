@@ -70,17 +70,29 @@ def _wiki_summary(title: str) -> str:
     return data.get("extract", "")
 
 
+def _wiki_search_title(query: str) -> str:
+    """Full-text search (handles natural phrases like 'how volcanoes are formed'), not just title prefixes."""
+    q = urllib.parse.urlencode({
+        "action": "query", "list": "search", "srsearch": query,
+        "srlimit": 1, "format": "json",
+    })
+    data = _get_json("https://en.wikipedia.org/w/api.php?" + q)
+    hits = data.get("query", {}).get("search", [])
+    return hits[0]["title"] if hits else ""
+
+
 def build_script(topic: str) -> str:
     """Short narration for the topic, taken from Wikipedia. Falls back to a simple line."""
     text = ""
     try:
         try:
-            text = _wiki_summary(topic)
+            text = _wiki_summary(topic)          # fast path: topic is already close to a title
         except Exception:
-            q = urllib.parse.urlencode({"action": "opensearch", "search": topic, "limit": 1, "format": "json"})
-            hits = _get_json("https://en.wikipedia.org/w/api.php?" + q)[1]
-            if hits:
-                text = _wiki_summary(hits[0])
+            text = ""
+        if not text:
+            title = _wiki_search_title(topic)     # robust path: natural-language full-text search
+            if title:
+                text = _wiki_summary(title)
     except Exception:
         text = ""
 
@@ -274,3 +286,4 @@ def generate(
         filename=f"{slug}.mp4",  # sets Content-Disposition: attachment
         background=BackgroundTask(shutil.rmtree, workdir, ignore_errors=True),
     )
+    
